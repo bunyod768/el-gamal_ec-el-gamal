@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Gamal -- So'z Shifrlash</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Bebas+Neue&family=DM+Sans:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #080b14;
+  --surface: #0d1120;
+  --card:    #111827;
+  --border:  #1e2a42;
+  --accent:  #38bdf8;
+  --gold:    #fbbf24;
+  --green:   #34d399;
+  --red:     #f87171;
+  --purple:  #a78bfa;
+  --orange:  #fb923c;
+  --pink:    #f472b6;
+  --muted:   #4b6080;
+  --text:    #e2e8f0;
+  --mono: 'IBM Plex Mono', monospace;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'DM Sans', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body {
+  background:var(--bg); color:var(--text);
+  font-family:var(--body); min-height:100vh; padding:0 0 80px;
+}
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity:.4; z-index:0;
+}
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 4px);
+  z-index:0;
+}
+
+.wrap{max-width:960px;margin:0 auto;padding:48px 20px;position:relative;z-index:1;}
+
+.hero{text-align:center;margin-bottom:44px;}
+.hero-tag{
+  font-family:var(--mono);font-size:11px;letter-spacing:4px;
+  color:var(--accent);border:1px solid rgba(56,189,248,.25);
+  display:inline-block;padding:5px 16px;margin-bottom:18px;
+  background:rgba(56,189,248,.06);
+}
+.hero h1{
+  font-family:var(--display);font-size:clamp(3rem,8vw,5rem);
+  letter-spacing:4px;line-height:1;
+  background:linear-gradient(135deg,#e2e8f0 30%,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{margin-top:12px;color:var(--muted);font-size:14px;letter-spacing:.5px;}
+
+.key-panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:22px;}
+.panel-title{
+  font-family:var(--mono);font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--accent);margin-bottom:20px;
+  display:flex;align-items:center;gap:10px;
+}
+.panel-title::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 8px var(--accent);
+  animation:blink 2s infinite;
+}
+.panel-title.green-t{color:var(--green);}
+.panel-title.green-t::before{background:var(--green);box-shadow:0 0 8px var(--green);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.key-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;}
+.kfield label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;}
+.kfield input{
+  width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;color:var(--text);
+  font-family:var(--mono);font-size:13px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.kfield input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,189,248,.1);}
+.key-vals{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;}
+.kv-chip{
+  background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.2);
+  border-radius:6px;padding:6px 14px;
+  font-family:var(--mono);font-size:12px;color:var(--accent);
+}
+.kv-chip span{color:var(--text);}
+
+.input-row{
+  display:flex;gap:12px;align-items:flex-end;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:24px;margin-bottom:22px;
+}
+.word-field{flex:1;}
+.word-field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;}
+.word-field input{
+  width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;color:var(--text);
+  font-family:var(--mono);font-size:18px;outline:none;
+  letter-spacing:4px;transition:border-color .2s,box-shadow .2s;
+}
+.word-field input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(56,189,248,.12);}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{
+  padding:13px 22px;border:none;border-radius:10px;
+  font-family:var(--body);font-size:13px;font-weight:700;
+  cursor:pointer;letter-spacing:.5px;transition:all .2s;white-space:nowrap;
+}
+.btn-enc{background:linear-gradient(135deg,var(--accent),#818cf8);color:#080b14;}
+.btn-enc:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(56,189,248,.3);}
+.btn-clear{background:transparent;border:1px solid var(--border);color:var(--muted);}
+.btn-clear:hover{border-color:var(--red);color:var(--red);}
+.btn-demo{background:transparent;border:1px solid rgba(251,191,36,.3);color:var(--gold);}
+.btn-demo:hover{background:rgba(251,191,36,.08);}
+.btn:active{transform:translateY(0) scale(.98);}
+
+.results-wrap{display:none;}
+.results-wrap.show{display:block;animation:fadeUp .4s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+.formula-card{
+  background:rgba(0,0,0,.3);border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0;padding:12px 16px;
+  font-family:var(--mono);font-size:12px;color:var(--gold);
+  margin:12px 0;line-height:2;
+}
+.formula-card.fc-green{border-left-color:var(--green);color:var(--green);}
+
+.section-panel{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:22px 26px;margin-bottom:18px;
+}
+
+/* ---- Encrypt cards ---- */
+.enc-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:14px;margin-bottom:28px;
+}
+.enc-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;
+  animation:cardIn .35s ease both;transition:border-color .2s;
+}
+.enc-card:hover{border-color:rgba(56,189,248,.4);}
+.ec-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 15px;
+  background:linear-gradient(135deg,rgba(56,189,248,.08),rgba(129,140,248,.05));
+  border-bottom:1px solid var(--border);
+}
+.ec-char{font-family:var(--display);font-size:32px;color:var(--accent);line-height:1;}
+.ec-meta{text-align:right;font-family:var(--mono);font-size:11px;}
+.ec-meta .eidx{color:var(--muted);margin-bottom:2px;}
+.ec-meta .easc{color:var(--gold);font-size:13px;font-weight:600;}
+.ec-body{padding:12px 15px;}
+.ec-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);
+  font-family:var(--mono);font-size:12px;
+}
+.ec-row:last-child{border-bottom:none;}
+.ec-row .en{color:var(--muted);flex:1;}
+.ec-row .ev{color:var(--text);font-weight:600;text-align:right;word-break:break-all;}
+.ec-row .ev.ek{color:var(--purple);}
+.ec-row .ev.ec{color:var(--gold);}
+
+/* ---- Decrypt cards ---- */
+.dec-section{display:none;}
+.dec-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+  gap:18px;margin-bottom:28px;
+}
+.dec-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;
+  animation:cardIn .35s ease both;transition:border-color .2s;
+}
+.dec-card:hover{border-color:rgba(52,211,153,.4);}
+.dc-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:linear-gradient(135deg,rgba(52,211,153,.1),rgba(6,182,212,.05));
+  border-bottom:1px solid var(--border);
+}
+.dc-char-big{
+  font-family:var(--display);font-size:36px;color:var(--green);
+  line-height:1;text-shadow:0 0 18px rgba(52,211,153,.5);
+}
+.dc-badge{text-align:right;font-family:var(--mono);font-size:11px;}
+.dc-badge .bidx{color:var(--muted);margin-bottom:3px;}
+.dc-badge .bres{color:var(--green);font-size:13px;font-weight:700;}
+
+/* step rows */
+.ds-row{
+  display:grid;grid-template-columns:26px 1fr auto;
+  align-items:start;gap:10px;
+  padding:9px 15px;border-bottom:1px solid rgba(255,255,255,.04);
+  font-family:var(--mono);font-size:11.5px;
+}
+.ds-row:last-child{border-bottom:none;}
+.ds-num{
+  width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:2px;
+  background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);
+  color:var(--accent);font-size:10px;
+  display:flex;align-items:center;justify-content:center;
+}
+.ds-num.given-n{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:var(--gold);}
+.ds-label{color:var(--muted);line-height:1.5;}
+.ds-val{color:var(--text);font-weight:700;text-align:right;word-break:break-all;line-height:1.5;}
+.ds-val.vc {color:var(--gold);}
+.ds-val.vs {color:var(--pink);}
+.ds-val.vi {color:var(--orange);}
+.ds-val.vm {color:var(--green);}
+.ds-val.vch{color:var(--green);font-size:15px;}
+
+/* final word */
+.final-box{
+  background:linear-gradient(135deg,rgba(52,211,153,.07),rgba(6,182,212,.05));
+  border:1px solid rgba(52,211,153,.25);
+  border-radius:14px;padding:28px;text-align:center;margin-bottom:20px;
+}
+.final-label{font-family:var(--mono);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.final-word{
+  font-family:var(--display);font-size:clamp(2.5rem,7vw,4.2rem);
+  letter-spacing:10px;color:var(--green);
+  text-shadow:0 0 40px rgba(52,211,153,.5);
+  margin-bottom:4px;
+}
+.final-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px;}
+.fchip{
+  background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);
+  border-radius:6px;padding:7px 13px;
+  font-family:var(--mono);font-size:12px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.fchip .fch{color:var(--green);font-size:16px;font-weight:700;}
+.fchip .fas{color:var(--muted);font-size:10px;}
+
+.alert{padding:12px 16px;border-radius:8px;font-family:var(--mono);font-size:12px;margin:12px 0;display:none;}
+.alert.show{display:block;animation:fadeUp .3s ease;}
+.alert-err{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);color:var(--red);}
+.alert-ok {background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.3);color:var(--green);}
+
+@media(max-width:620px){
+  .input-row{flex-direction:column;}
+  .enc-grid,.dec-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:440px){
+  .enc-grid,.dec-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-tag">ASCII x El Gamal</div>
+    <h1>SO'Z SHIFRLASH</h1>
+    <p>Har bir harf ASCII raqamiga aylanadi &nbsp;|&nbsp; Har biri uchun k tasodifiy tanlanadi &nbsp;|&nbsp; Qadam-qadam ko'rsatiladi</p>
+  </div>
+
+  <div class="key-panel">
+    <div class="panel-title">Kalitlar</div>
+    <div class="key-grid">
+      <div class="kfield">
+        <label>p -- Tub son</label>
+        <input type="number" id="kp" value="257" min="5">
+      </div>
+      <div class="kfield">
+        <label>g -- Generator</label>
+        <input type="number" id="kg" value="3" min="2">
+      </div>
+      <div class="kfield">
+        <label>x -- Maxfiy kalit</label>
+        <input type="number" id="kx" value="79" min="2">
+      </div>
+      <div class="kfield" style="display:flex;align-items:flex-end">
+        <button class="btn btn-demo" style="width:100%" onclick="computeY()">y Hisoblash</button>
+      </div>
+    </div>
+    <div class="key-vals" id="key-vals-row" style="display:none">
+      <div class="kv-chip">p = <span id="disp-p">-</span></div>
+      <div class="kv-chip">g = <span id="disp-g">-</span></div>
+      <div class="kv-chip">x = <span id="disp-x">-</span></div>
+      <div class="kv-chip" style="border-color:rgba(251,191,36,.3);color:var(--gold)">y = g^x mod p = <span id="disp-y" style="color:var(--text)">-</span></div>
+    </div>
+  </div>
+
+  <div class="input-row">
+    <div class="word-field">
+      <label>Shifrlash uchun so'z</label>
+      <input type="text" id="word-input" placeholder="HELLO" maxlength="20" autocomplete="off">
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-demo" onclick="loadDemo()">Demo</button>
+      <button class="btn btn-enc" onclick="doEncrypt()">Shifrlash</button>
+      <button class="btn btn-clear" onclick="doClear()">Tozalash</button>
+    </div>
+  </div>
+
+  <div id="main-alert" class="alert"></div>
+
+  <div class="results-wrap" id="results">
+
+    <!-- Encrypt -->
+    <div class="section-panel" id="enc-summary" style="display:none">
+      <div class="panel-title">Shifrlash Natijalari</div>
+      <div class="formula-card" id="enc-formula"></div>
+    </div>
+    <div class="enc-grid" id="enc-grid"></div>
+
+    <!-- Decrypt -->
+    <div class="dec-section" id="dec-section">
+      <div class="section-panel">
+        <div class="panel-title green-t">Deshifrlash -- Har Bir Harf Qadam-Qadam</div>
+        <div class="formula-card fc-green">
+          Qadam 1: Berilgan qiymatlar (c1, c2, x) &nbsp;|&nbsp;
+          Qadam 2: s = c1^x mod p &nbsp;|&nbsp;
+          Qadam 3: s_inv = modInverse(s, p) &nbsp;|&nbsp;
+          Qadam 4: M = c2 * s_inv mod p &nbsp;|&nbsp;
+          Qadam 5: Harf = fromCharCode(M)
+        </div>
+      </div>
+      <div class="dec-grid" id="dec-grid"></div>
+      <div class="final-box">
+        <div class="final-label">Deshifrlangan So'z</div>
+        <div class="final-word" id="final-word"></div>
+        <div class="final-chips" id="final-chips"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function modPow(b,e,m){
+  if(m===1n)return 0n;
+  let r=1n;b=b%m;
+  while(e>0n){if(e%2n===1n)r=r*b%m;e=e/2n;b=b*b%m;}
+  return r;
+}
+function modInv(a,m){
+  let [or,r,os,s]=[a,m,1n,0n];
+  while(r!==0n){const q=or/r;[or,r]=[r,or-q*r];[os,s]=[s,os-q*s];}
+  if(or!==1n)return null;
+  return((os%m)+m)%m;
+}
+function gcd(a,b){while(b>0n){[a,b]=[b,a%b];}return a;}
+function isPrime(n){
+  if(n<2n)return false;if(n===2n||n===3n)return true;
+  if(n%2n===0n||n%3n===0n)return false;
+  for(let i=5n;i*i<=n;i+=6n)if(n%i===0n||n%(i+2n)===0n)return false;
+  return true;
+}
+function randK(p){
+  const phi=p-1n;let k,t=0;
+  do{k=BigInt(Math.floor(Math.random()*(Number(phi)-2))+2);t++;}
+  while(gcd(k,phi)!==1n&&t<2000);
+  return k;
+}
+
+let encData=[];
+
+function getKeys(){
+  return{
+    p:BigInt(document.getElementById('kp').value||'0'),
+    g:BigInt(document.getElementById('kg').value||'0'),
+    x:BigInt(document.getElementById('kx').value||'0')
+  };
+}
+function alert2(msg,type){
+  const el=document.getElementById('main-alert');
+  el.textContent=msg;el.className='alert alert-'+type+' show';
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),5000);
+}
+
+function computeY(){
+  const {p,g,x}=getKeys();
+  if(!isPrime(p)){alert2('p tub son emas!','err');return;}
+  if(g<2n||g>=p){alert2('g: 2 <= g < p kerak','err');return;}
+  if(x<2n||x>=p-1n){alert2('x: 2 <= x < p-1 kerak','err');return;}
+  const y=modPow(g,x,p);
+  document.getElementById('disp-p').textContent=String(p);
+  document.getElementById('disp-g').textContent=String(g);
+  document.getElementById('disp-x').textContent=String(x);
+  document.getElementById('disp-y').textContent=String(y);
+  document.getElementById('key-vals-row').style.display='flex';
+  alert2('y = '+g+'^'+x+' mod '+p+' = '+y,'ok');
+}
+
+function loadDemo(){
+  document.getElementById('kp').value='257';
+  document.getElementById('kg').value='3';
+  document.getElementById('kx').value='79';
+  document.getElementById('word-input').value='SALOM';
+  computeY();
+}
+
+function doEncrypt(){
+  const {p,g,x}=getKeys();
+  const word=document.getElementById('word-input').value.trim();
+  if(!word){alert2('Soz kiriting!','err');return;}
+  if(!isPrime(p)){alert2('p tub son emas!','err');return;}
+  if(g<2n||g>=p){alert2('g: 2 <= g < p kerak','err');return;}
+  if(x<2n||x>=p-1n){alert2('x: 2 <= x < p-1 kerak','err');return;}
+  for(const ch of word){
+    if(BigInt(ch.charCodeAt(0))>=p){
+      alert2('"'+ch+'" ASCII='+ch.charCodeAt(0)+' >= p='+p+'. Kattaroq p tanlang!','err');
+      return;
+    }
+  }
+
+  const y=modPow(g,x,p);
+  encData=[];
+  for(let i=0;i<word.length;i++){
+    const ch=word[i];
+    const M=BigInt(ch.charCodeAt(0));
+    const k=randK(p);
+    const yk=modPow(y,k,p);
+    const c1=modPow(g,k,p);
+    const c2=(M*yk)%p;
+    encData.push({ch,M,k,yk,c1,c2,i});
+  }
+
+  renderEncCards(encData,p,g,y);
+  renderDecCards(encData,p,x);
+
+  document.getElementById('enc-summary').style.display='block';
+  document.getElementById('enc-formula').innerHTML=
+    'c1 = g^k mod p &nbsp;&nbsp;|&nbsp;&nbsp; c2 = M * y^k mod p<br>'+
+    'p = '+p+' &nbsp;&nbsp; g = '+g+' &nbsp;&nbsp; y = g^x mod p = '+y;
+  document.getElementById('results').classList.add('show');
+  alert2('"'+word+'" -- '+word.length+' ta harf shifrlandi va deshifrlandi!','ok');
+}
+
+function renderEncCards(data,p,g,y){
+  const grid=document.getElementById('enc-grid');
+  grid.innerHTML='';
+  data.forEach((d,idx)=>{
+    const card=document.createElement('div');
+    card.className='enc-card';
+    card.style.animationDelay=(idx*55)+'ms';
+    card.innerHTML=
+      '<div class="ec-head">'+
+        '<div class="ec-char">'+esc(d.ch)+'</div>'+
+        '<div class="ec-meta">'+
+          '<div class="eidx">#'+(d.i+1)+' -- harf</div>'+
+          '<div class="easc">ASCII: '+d.M+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="ec-body">'+
+        row('M (ASCII)', d.M, '')+
+        row('k (efemer)', d.k, 'ek')+
+        row('y^k mod p', d.yk, 'ec')+
+        row('c1 = g^k mod p', d.c1, 'ec')+
+        row('c2 = M*y^k mod p', d.c2, 'ec')+
+      '</div>';
+    grid.appendChild(card);
+  });
+}
+
+function row(name,val,cls){
+  return '<div class="ec-row"><span class="en">'+name+'</span><span class="ev '+cls+'">'+val+'</span></div>';
+}
+
+function renderDecCards(data, p, x) {
+  const grid = document.getElementById('dec-grid');
+  grid.innerHTML = '';
+  const fchips = document.getElementById('final-chips');
+  fchips.innerHTML = '';
+  let word = '';
+
+  data.forEach((d, idx) => {
+    // ----- Deshifrlash hisob-kitoblari -----
+    const s = modPow(d.c1, x, p);           // Umumiy maxfiy s = c1^x mod p
+    const sInv = modInv(s, p);              // s ning modulyar teskarisi
+    const Mout = (d.c2 * sInv) % p;         // Asl xabar M = c2 * s^-1 mod p
+    const ch = String.fromCharCode(Number(Mout));
+    word += ch;
+
+    const card = document.createElement('div');
+    card.className = 'dec-card';
+    card.style.animationDelay = (idx * 65) + 'ms';
+
+    let steps = '';
+
+    // --- Qadam 1: Kiruvchi ma'lumotlar ---
+    steps += dsRow('1', 'given-n', 'Shifrlangan juftlikni olish', `(c1: ${d.c1}, c2: ${d.c2})`, 'vc');
+
+    // --- Qadam 2: s ni topish ---
+    steps += dsRow('2', '', 'Birgalikdagi maxfiy kalitni (s) tiklash:', '', '');
+    steps += dsRow('→', '', `s = c1^x mod p = ${d.c1}^${x} mod ${p}`, String(s), 'vs');
+
+    // --- Qadam 3: s ning teskarisini topish ---
+    steps += dsRow('3', '', 's ning modulyar teskarisini hisoblash:', '', '');
+    steps += dsRow('→', '', `s⁻¹ = modInverse(${s}, ${p})`, String(sInv), 'vi');
+
+    // --- Qadam 4: ASCII kodni tiklash ---
+    steps += dsRow('4', '', 'Asl ASCII kodni (M) hisoblash:', '', '');
+    steps += dsRow('→', '', `M = c2 * s⁻¹ mod p = ${d.c2} * ${sInv} mod ${p}`, String(Mout), 'vm');
+
+    // --- Qadam 5: Simvolga o'girish ---
+    steps += dsRow('5', '', 'ASCII dan simvolga o\'girish:', '', '');
+    steps += dsRow('✓', '', `fromCharCode(${Mout})`, `"${esc(ch)}"`, 'vch');
+
+    card.innerHTML = `
+      <div class="dc-head">
+        <div class="dc-char-big">${esc(ch)}</div>
+        <div class="dc-badge">
+          <div class="bidx">#${idx + 1} - Harf ishlovi</div>
+          <div class="bres">Natija: "${esc(ch)}"</div>
+        </div>
+      </div>
+      ${steps}
+    `;
+
+    grid.appendChild(card);
+
+    // Final pastki chipslar
+    const chip = document.createElement('div');
+    chip.className = 'fchip';
+    chip.innerHTML = `<span class="fch">${esc(ch)}</span><span class="fas">ASCII: ${Mout}</span>`;
+    fchips.appendChild(chip);
+  });
+
+  document.getElementById('final-word').textContent = word;
+  document.getElementById('dec-section').style.display = 'block';
+}
+
+function dsRow(num, numClass, label, val, valClass){
+  const nHtml='<div class="ds-num '+numClass+'">'+num+'</div>';
+  const vHtml=val!==''?'<span class="ds-val '+valClass+'">'+val+'</span>':'<span></span>';
+  return '<div class="ds-row">'+nHtml+'<span class="ds-label">'+label+'</span>'+vHtml+'</div>';
+}
+
+function doClear(){
+  document.getElementById('word-input').value='';
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('enc-grid').innerHTML='';
+  document.getElementById('dec-grid').innerHTML='';
+  document.getElementById('dec-section').style.display='none';
+  document.getElementById('enc-summary').style.display='none';
+  encData=[];
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+computeY();
+</script>
+</body>
+</html>
