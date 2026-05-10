@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECC ElGamal Shifrlash</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a0f;
+    --panel: #0a1520;
+    --border: #0f3a5a;
+    --accent: #00d4ff;
+    --accent2: #00ff88;
+    --accent3: #ff6b35;
+    --warn: #ffd166;
+    --text: #c8e6f0;
+    --dim: #4a7a8a;
+    --glow:  0 0 20px rgba(0,212,255,0.3);
+    --glow2: 0 0 20px rgba(0,255,136,0.3);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size:40px 40px;
+    pointer-events:none; z-index:0;
+  }
+
+  .container { max-width:1000px; margin:0 auto; padding:30px 20px; position:relative; z-index:1; }
+
+  header { text-align:center; margin-bottom:36px; animation:fadeDown .8s ease; }
+  header h1 {
+    font-family:'Orbitron',monospace;
+    font-size:clamp(1.3rem,4vw,2.2rem);
+    font-weight:900; color:var(--accent);
+    text-shadow:var(--glow); letter-spacing:2px;
+  }
+  header h1 span { color:var(--accent2); }
+  header p { color:var(--dim); margin-top:8px; font-size:.84rem; letter-spacing:1px; }
+  .badge {
+    display:inline-block; margin-top:12px;
+    padding:4px 14px; border:1px solid var(--accent);
+    color:var(--accent); font-size:.72rem; letter-spacing:2px;
+    animation:pulse 2.2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100%{box-shadow:0 0 4px rgba(0,212,255,.2);}
+    50%{box-shadow:0 0 16px rgba(0,212,255,.6);}
+  }
+
+  .panel {
+    background:var(--panel);
+    border:1px solid var(--border);
+    padding:22px; margin-bottom:20px;
+    position:relative; overflow:hidden;
+    animation:fadeUp .55s ease both;
+  }
+  .panel::before {
+    content:''; position:absolute;
+    top:0; left:0; width:3px; height:100%;
+    background:var(--accent);
+  }
+  .panel.green::before  { background:var(--accent2); }
+  .panel.orange::before { background:var(--accent3); }
+
+  .panel-title {
+    font-family:'Orbitron',monospace;
+    font-size:.72rem; font-weight:700;
+    letter-spacing:3px; text-transform:uppercase;
+    color:var(--accent); margin-bottom:16px;
+  }
+  .panel.green  .panel-title { color:var(--accent2); }
+  .panel.orange .panel-title { color:var(--accent3); }
+
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-bottom:16px; }
+  .grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
+
+  .info-item {
+    background:rgba(0,212,255,.04);
+    border:1px solid rgba(0,212,255,.1);
+    padding:12px;
+  }
+  .info-item label { display:block; font-size:.68rem; color:var(--dim); letter-spacing:2px; margin-bottom:4px; }
+  .info-item .val  { font-size:.84rem; color:var(--accent); word-break:break-all; }
+  .info-item.green .val  { color:var(--accent2); }
+  .info-item.orange .val { color:var(--accent3); }
+
+  .field { margin-bottom:14px; }
+  .field label {
+    display:block; font-size:.7rem; color:var(--dim);
+    letter-spacing:2px; margin-bottom:6px; text-transform:uppercase;
+  }
+  .field input {
+    width:100%; background:rgba(0,0,0,.45);
+    border:1px solid var(--border);
+    color:var(--text); font-family:'Share Tech Mono',monospace;
+    font-size:.84rem; padding:10px 12px; outline:none;
+    transition:border-color .2s;
+  }
+  .field input:focus { border-color:var(--accent); box-shadow:var(--glow); }
+
+  .btn {
+    padding:11px 26px;
+    font-family:'Orbitron',monospace;
+    font-size:.72rem; font-weight:700;
+    letter-spacing:2px; cursor:pointer;
+    border:none; transition:all .2s; text-transform:uppercase;
+  }
+  .btn:disabled { opacity:.35; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+  .btn-primary { background:var(--accent);  color:var(--bg); }
+  .btn-primary:hover:not(:disabled) { background:#00eeff; box-shadow:var(--glow); transform:translateY(-1px); }
+  .btn-green   { background:var(--accent2); color:var(--bg); }
+  .btn-green:hover:not(:disabled)   { background:#00ffaa; box-shadow:var(--glow2); transform:translateY(-1px); }
+  .btn-orange  { background:var(--accent3); color:var(--bg); }
+  .btn-orange:hover:not(:disabled)  { background:#ff8855; transform:translateY(-1px); }
+  .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+
+  .steps { counter-reset:step; margin-top:14px; }
+  .step {
+    position:relative; padding:12px 12px 12px 48px;
+    margin-bottom:8px;
+    background:rgba(0,212,255,.03);
+    border-left:2px solid rgba(0,212,255,.15);
+    font-size:.8rem; line-height:1.6;
+    animation:slideIn .35s ease both;
+  }
+  .step::before {
+    counter-increment:step;
+    content:counter(step,decimal-leading-zero);
+    position:absolute; left:10px; top:12px;
+    font-family:'Orbitron',monospace;
+    font-size:.68rem; color:var(--accent); font-weight:700;
+  }
+  .step .math {
+    display:block; margin-top:5px;
+    padding:7px 10px;
+    background:rgba(0,0,0,.4);
+    border:1px solid rgba(0,212,255,.08);
+    color:var(--accent2); font-size:.78rem;
+    word-break:break-all; letter-spacing:.3px;
+  }
+
+  .status {
+    padding:10px 14px; font-size:.8rem;
+    border:1px solid; margin-top:12px;
+    word-break:break-all; line-height:1.6;
+  }
+  .status.ok   { border-color:var(--accent2); color:var(--accent2); background:rgba(0,255,136,.05); }
+  .status.err  { border-color:#ff4444;         color:#ff6666;        background:rgba(255,0,0,.04); }
+  .status.info { border-color:var(--accent);   color:var(--accent);  background:rgba(0,212,255,.04); }
+
+  .spinner {
+    display:inline-block; width:12px; height:12px;
+    border:2px solid rgba(0,212,255,.2);
+    border-top-color:var(--accent); border-radius:50%;
+    animation:spin .5s linear infinite;
+    vertical-align:middle; margin-right:6px;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .param-row {
+    display:flex; flex-wrap:wrap; gap:8px;
+    padding:10px 12px;
+    background:rgba(0,212,255,.03);
+    border:1px solid rgba(0,212,255,.1);
+    font-size:.76rem; margin-top:14px;
+  }
+  .param-row span { color:var(--dim); }
+  .param-row strong      { color:var(--accent); margin-left:4px; }
+  .param-row strong.g    { color:var(--accent2); }
+  .param-row strong.nord { color:var(--warn); }
+
+  .key-display { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+  @media(max-width:560px){ .key-display{grid-template-columns:1fr;} }
+
+  .tag {
+    display:inline-block; padding:2px 8px;
+    font-size:.64rem; letter-spacing:2px; border:1px solid;
+    margin-bottom:10px;
+  }
+  .tag-blue   { border-color:var(--accent);  color:var(--accent); }
+  .tag-green  { border-color:var(--accent2); color:var(--accent2); }
+  .tag-orange { border-color:var(--accent3); color:var(--accent3); }
+
+  @keyframes fadeDown { from{opacity:0;transform:translateY(-18px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeUp   { from{opacity:0;transform:translateY(18px)}  to{opacity:1;transform:translateY(0)} }
+  @keyframes slideIn  { from{opacity:0;transform:translateX(-8px)}  to{opacity:1;transform:translateX(0)} }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>ECC <span>ElGamal</span></h1>
+    <p>Elliptik egri chiziqlarga asoslangan ochiq kalit kriptografiyasi</p>
+    <span class="badge">⬡ CUSTOM CURVE · n AVTOMATIK HISOBLANADI</span>
+  </header>
+
+  <!-- 1: Parametrlar -->
+  <div class="panel" style="animation-delay:.05s">
+    <div class="panel-title">⬡ 1 — Egri Chiziq Parametrlarini Kiriting</div>
+    <p style="font-size:.78rem;color:var(--dim);margin-bottom:16px;">
+      y² ≡ x³ + ax + b (mod p) &nbsp;·&nbsp; p tub son &nbsp;·&nbsp; Δ = −16(4a³+27b²) ≢ 0 (mod p)
+    </p>
+
+    <div class="grid3">
+      <div class="field">
+        <label>p — modul (tub son)</label>
+        <input type="number" id="inP" placeholder="Masalan: 17" value="17" min="5">
+      </div>
+      <div class="field">
+        <label>a — koeffitsient</label>
+        <input type="number" id="inA" placeholder="Masalan: 2" value="2">
+      </div>
+      <div class="field">
+        <label>b — koeffitsient</label>
+        <input type="number" id="inB" placeholder="Masalan: 2" value="2">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Gx — generator x-koordinata</label>
+        <input type="number" id="inGx" placeholder="Masalan: 5" value="5" min="0">
+      </div>
+      <div class="field">
+        <label>Gy — generator y-koordinata</label>
+        <input type="number" id="inGy" placeholder="Masalan: 1" value="1" min="0">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="applyCurve()">⚙ Qo'llash &amp; n ni Hisoblash</button>
+
+    <div id="curveStatus" style="display:none;"></div>
+    <div id="paramRow"    style="display:none;"></div>
+  </div>
+
+  <!-- 2: Kalit -->
+  <div class="panel" style="animation-delay:.1s">
+    <div class="panel-title">🔑 2 — Kalit Juftligi Generatsiyasi</div>
+    <div class="tag tag-blue">ALICE (QABUL QILUVCHI) KALITLARI</div>
+
+    <div class="field">
+      <label>Xususiy kalit d &nbsp;[ 1 &lt; d &lt; n−1 ] — ixtiyoriy (bo'sh = tasodifiy)</label>
+      <input type="number" id="inD" placeholder="Bo'sh qoldiring = avtomatik">
+    </div>
+
+    <button class="btn btn-primary" id="btnGenKey" onclick="generateKeyPair()" disabled>⚡ Kalit Yaratish</button>
+
+    <div id="keyOutput" style="display:none; margin-top:16px;">
+      <div class="key-display">
+        <div class="info-item">
+          <label>XUSUSIY KALIT d</label>
+          <div class="val" id="dispD">—</div>
+        </div>
+        <div class="info-item green">
+          <label>OCHIQ KALIT Q = d·G</label>
+          <div class="val" id="dispQ">—</div>
+        </div>
+      </div>
+      <div id="keySteps" class="steps"></div>
+    </div>
+  </div>
+
+  <!-- 3: Shifrlash -->
+  <div class="panel green" style="animation-delay:.15s">
+    <div class="panel-title">🔒 3 — Shifrlash (BOB tomonidan)</div>
+    <div class="tag tag-green">XABAR → SHIFRTEKST</div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Xabar m &nbsp;[ 0 ≤ m &lt; p ]</label>
+        <input type="number" id="inM" placeholder="Masalan: 10" min="0">
+      </div>
+      <div class="field">
+        <label>Tasodifiy kalit k &nbsp;[ 1 &lt; k &lt; n−1 ] — ixtiyoriy</label>
+        <div style="display:flex;gap:8px;">
+          <input type="number" id="inK" placeholder="Bo'sh = avtomatik" min="2" style="flex:1;">
+          <button class="btn btn-green" style="padding:9px 14px;font-size:.7rem;" id="btnRandK" onclick="randomK()" disabled>↺</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-green" id="btnEnc" onclick="encrypt()" disabled>🔒 Shifrlash</button>
+
+    <div id="encOutput" style="display:none; margin-top:16px;">
+      <div class="key-display">
+        <div class="info-item">
+          <label>C₁ = k·G</label>
+          <div class="val" id="dispC1">—</div>
+        </div>
+        <div class="info-item green">
+          <label>C₂ = m + Hx(k·Q) mod p</label>
+          <div class="val" id="dispC2">—</div>
+        </div>
+      </div>
+      <div id="encSteps" class="steps"></div>
+    </div>
+  </div>
+
+  <!-- 4: Deshifrlash -->
+  <div class="panel orange" style="animation-delay:.2s">
+    <div class="panel-title">🔓 4 — Deshifrlash (ALICE tomonidan)</div>
+    <div class="tag tag-orange">SHIFRTEKST → XABAR</div>
+
+    <button class="btn btn-orange" id="btnDec" onclick="decrypt()" disabled>🔓 Deshifrlash</button>
+
+    <div id="decOutput" style="display:none; margin-top:16px;">
+      <div class="info-item orange" style="margin-bottom:12px;">
+        <label>QAYTA TIKLANGAN XABAR m</label>
+        <div class="val" id="dispDecM" style="font-size:1.1rem;font-family:'Orbitron',monospace;">—</div>
+      </div>
+      <div id="decSteps" class="steps"></div>
+    </div>
+  </div>
+
+  <!-- Nazariya -->
+  <div class="panel" style="animation-delay:.25s">
+    <div class="panel-title">📐 Nazariy Asoslar</div>
+    <div class="steps" style="counter-reset:step;">
+      <div class="step"><strong>Egri chiziq tenglamasi:</strong>
+        <span class="math">y² ≡ x³ + ax + b (mod p),   Δ = −16(4a³ + 27b²) ≢ 0 (mod p)</span>
+      </div>
+      <div class="step"><strong>Nuqta qo'shish  (P ≠ Q):</strong>
+        <span class="math">λ = (y₂−y₁)·(x₂−x₁)⁻¹ mod p
+x₃ = λ²−x₁−x₂ mod p,   y₃ = λ(x₁−x₃)−y₁ mod p</span>
+      </div>
+      <div class="step"><strong>Ikkilash  (P = Q, 2P):</strong>
+        <span class="math">λ = (3x₁²+a)·(2y₁)⁻¹ mod p</span>
+      </div>
+      <div class="step"><strong>Generator tartib n — avtomatik brute-force:</strong>
+        <span class="math">n = min{ k ∈ ℤ⁺ : k·G = O }   (Hasse: p+1−2√p ≤ n ≤ p+1+2√p)</span>
+      </div>
+      <div class="step"><strong>ElGamal protokoli:</strong>
+        <span class="math">KeyGen : d ← rand[1, n−1],  Q = d·G
+Enc    : C₁ = k·G,   C₂ = m + Hx(k·Q) mod p
+Dec    : S  = d·C₁,  m  = C₂ − Hx(S) mod p</span>
+      </div>
+      <div class="step"><strong>ECDLP xavfsizligi:</strong>
+        <span class="math">Q = d·G berilganda d ni topish hisoblash jihatidan imkonsiz</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  YORDAMCHI
+// ═══════════════════════════════════════════════════════
+function mod(a, n) { return ((a % n) + n) % n; }
+
+function modInv(a, m) {
+  a = mod(a, m);
+  let [r0, r1] = [m, a];
+  let [s0, s1] = [0n, 1n];
+  while (r1 !== 0n) {
+    const q = r0 / r1;
+    [r0, r1] = [r1, r0 - q * r1];
+    [s0, s1] = [s1, s0 - q * s1];
+  }
+  if (r0 !== 1n) return null;
+  return mod(s0, m);
+}
+
+function modpow(base, exp, m) {
+  let r = 1n; base = base % m;
+  while (exp > 0n) {
+    if (exp & 1n) r = r * base % m;
+    base = base * base % m;
+    exp >>= 1n;
+  }
+  return r;
+}
+
+// Miller-Rabin (kichik sonlar uchun deterministik)
+function isPrime(n) {
+  if (n < 2n) return false;
+  for (const s of [2n,3n,5n,7n,11n,13n]) if (n === s) return true;
+  if (n % 2n === 0n) return false;
+  let d = n - 1n, r = 0;
+  while (d % 2n === 0n) { d >>= 1n; r++; }
+  outer: for (const a of [2n,3n,5n,7n,11n,13n,17n,19n,23n]) {
+    if (a >= n) continue;
+    let x = modpow(a, d, n);
+    if (x === 1n || x === n - 1n) continue;
+    for (let i = 0; i < r - 1; i++) {
+      x = x * x % n;
+      if (x === n - 1n) continue outer;
+    }
+    return false;
+  }
+  return true;
+}
+
+function bigSqrt(n) {
+  if (n <= 0n) return 0n;
+  let x = BigInt(Math.ceil(Math.sqrt(Number(n))));
+  for (let i = 0; i < 8; i++) x = (x + n / x) / 2n;
+  return x + 2n;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ECC NUQTA
+// ═══════════════════════════════════════════════════════
+class Point {
+  constructor(x, y, inf = false) { this.x = x; this.y = y; this.inf = inf; }
+  isInf() { return this.inf; }
+  toString() { return this.inf ? 'O (cheksizlik)' : `(${this.x}, ${this.y})`; }
+}
+const INF = new Point(0n, 0n, true);
+
+function pointAdd(P, Q, a, p) {
+  if (P.isInf()) return Q;
+  if (Q.isInf()) return P;
+  if (P.x === Q.x) {
+    if (P.y !== Q.y || P.y === 0n) return INF;
+    // Ikkilash
+    const num = mod(3n * P.x * P.x + a, p);
+    const den = modInv(mod(2n * P.y, p), p);
+    if (!den) return INF;
+    const lam = mod(num * den, p);
+    const x3  = mod(lam * lam - 2n * P.x, p);
+    const y3  = mod(lam * (P.x - x3) - P.y, p);
+    return new Point(x3, y3);
+  }
+  const num = mod(Q.y - P.y, p);
+  const den = modInv(mod(Q.x - P.x, p), p);
+  if (!den) return INF;
+  const lam = mod(num * den, p);
+  const x3  = mod(lam * lam - P.x - Q.x, p);
+  const y3  = mod(lam * (P.x - x3) - P.y, p);
+  return new Point(x3, y3);
+}
+
+function scalarMul(k, P, a, p) {
+  let R = INF, B = new Point(P.x, P.y);
+  while (k > 0n) {
+    if (k & 1n) R = pointAdd(R, B, a, p);
+    B = pointAdd(B, B, a, p);
+    k >>= 1n;
+  }
+  return R;
+}
+
+// ═══════════════════════════════════════════════════════
+//  TARTIB HISOBLASH — brute force k·G = O
+// ═══════════════════════════════════════════════════════
+function computeOrder(G, a, p) {
+  const limit = p + 1n + 2n * bigSqrt(p);
+  let R = new Point(G.x, G.y);
+  for (let k = 1n; k <= limit + 5n; k++) {
+    if (R.isInf()) return k;
+    R = pointAdd(R, G, a, p);
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  HOLAT
+// ═══════════════════════════════════════════════════════
+let curve   = null;
+let privKey = null, pubKey = null;
+let C1 = null, C2 = null;
+
+function showStatus(id, type, html) {
+  const el = document.getElementById(id);
+  el.className = 'status ' + type;
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+function setEnabled(curve_ok, key_ok, enc_ok) {
+  document.getElementById('btnGenKey').disabled = !curve_ok;
+  document.getElementById('btnRandK').disabled  = !key_ok;
+  document.getElementById('btnEnc').disabled    = !key_ok;
+  document.getElementById('btnDec').disabled    = !enc_ok;
+}
+
+// ═══════════════════════════════════════════════════════
+//  1 — EGRI CHIZIQNI QO'LLASH
+// ═══════════════════════════════════════════════════════
+function applyCurve() {
+  curve = null; privKey = pubKey = C1 = C2 = null;
+  ['keyOutput','encOutput','decOutput'].forEach(id =>
+    document.getElementById(id).style.display = 'none');
+  setEnabled(false, false, false);
+  document.getElementById('paramRow').style.display = 'none';
+
+  let p, a, b, Gx, Gy;
+  try {
+    p  = BigInt(document.getElementById('inP').value.trim());
+    a  = BigInt(document.getElementById('inA').value.trim());
+    b  = BigInt(document.getElementById('inB').value.trim());
+    Gx = BigInt(document.getElementById('inGx').value.trim());
+    Gy = BigInt(document.getElementById('inGy').value.trim());
+  } catch(e) {
+    showStatus('curveStatus','err','❌ Kiritish xatosi: ' + e.message); return;
+  }
+
+  if (!isPrime(p)) {
+    showStatus('curveStatus','err',`❌ p = ${p} tub son emas! Tub son kiriting.`); return;
+  }
+
+  const disc = mod(-16n * (4n * a**3n + 27n * b**2n), p);
+  if (disc === 0n) {
+    showStatus('curveStatus','err',
+      `❌ Δ = −16(4a³+27b²) ≡ 0 (mod p) — singular egri chiziq!<br>a yoki b ni o'zgartiring.`);
+    return;
+  }
+
+  const lhs = mod(Gy * Gy, p);
+  const rhs = mod(Gx**3n + a * Gx + b, p);
+  if (lhs !== rhs) {
+    showStatus('curveStatus','err',
+      `❌ G nuqtasi egri chiziqda emas!<br>Gy² mod p = ${lhs},   Gx³+a·Gx+b mod p = ${rhs}`);
+    return;
+  }
+
+  showStatus('curveStatus','info',
+    '<span class="spinner"></span> G nuqtasining tartib n hisoblanmoqda…');
+
+  setTimeout(() => {
+    const G = new Point(Gx, Gy);
+    const n = computeOrder(G, a, p);
+
+    if (!n || n < 2n) {
+      showStatus('curveStatus','err',
+        '❌ n hisoblab bo\'lmadi. Kichikroq p yoki boshqa G tanlang.');
+      return;
+    }
+
+    curve = { p, a, b, G, n };
+    setEnabled(true, false, false);
+
+    const pr = document.getElementById('paramRow');
+    pr.innerHTML = `
+      <span>p =</span><strong>${p}</strong>
+      <span style="margin-left:12px">a =</span><strong>${a}</strong>
+      <span style="margin-left:12px">b =</span><strong>${b}</strong>
+      <span style="margin-left:12px">G =</span><strong class="g">(${Gx}, ${Gy})</strong>
+      <span style="margin-left:12px">n =</span><strong class="nord">${n}</strong>
+      <span style="margin-left:12px;color:var(--accent2)">· Δ ≢ 0 ✓ · G egri chiziqda ✓</span>
+    `;
+    pr.style.display = 'flex';
+
+    showStatus('curveStatus','ok',
+      `✓ Egri chiziq to'g'ri!&nbsp; <strong>n = ${n}</strong> — G nuqtasining tartibini brute-force bilan avtomatik hisoblab topildi.`);
+  }, 30);
+}
+
+// ═══════════════════════════════════════════════════════
+//  2 — KALIT JUFTLIGI
+// ═══════════════════════════════════════════════════════
+function randRange(lo, hi) {
+  const range = hi - lo + 1n;
+  const bytes = Math.ceil(range.toString(2).length / 8) + 2;
+  const arr = new Uint8Array(bytes);
+  let v;
+  do {
+    crypto.getRandomValues(arr);
+    v = 0n;
+    for (const b of arr) v = (v << 8n) | BigInt(b);
+    v = mod(v, range);
+  } while (false);
+  return lo + v;
+}
+
+function generateKeyPair() {
+  if (!curve) return;
+  const { G, a, p, n } = curve;
+
+  let d;
+  const dStr = document.getElementById('inD').value.trim();
+  if (dStr) {
+    try { d = BigInt(dStr); } catch { alert("d xato!"); return; }
+    if (d < 1n || d >= n - 1n) {
+      alert(`d qiymati [1, ${n-2n}] oralig'ida bo'lishi kerak.`); return;
+    }
+  } else {
+    if (n <= 3n) { alert("n juda kichik."); return; }
+    d = randRange(2n, n - 2n);
+  }
+
+  privKey = d;
+  pubKey  = scalarMul(d, G, a, p);
+
+  document.getElementById('dispD').textContent = `d = ${d}`;
+  document.getElementById('dispQ').textContent = `Q = ${pubKey.toString()}`;
+
+  document.getElementById('keySteps').innerHTML = `
+    <div class="step">Xususiy kalit d tanlandi:
+      <span class="math">d = ${d}   ∈  [1, n−1] = [1, ${n-1n}]</span>
+    </div>
+    <div class="step">Generator va egri chiziq:
+      <span class="math">G = (${G.x}, ${G.y}),   n = ${n},   p = ${p}</span>
+    </div>
+    <div class="step">Ochiq kalit — Double-and-Add algoritmi:
+      <span class="math">Q = d · G = ${d} · G = ${pubKey.toString()}</span>
+    </div>
+    <div class="step">Kalit taqsimoti:
+      <span class="math">Ochiq: Q = ${pubKey.toString()}
+Maxfiy: d = *** (faqat Alice biladi)</span>
+    </div>
+  `;
+  document.getElementById('keyOutput').style.display = 'block';
+  document.getElementById('encOutput').style.display = 'none';
+  document.getElementById('decOutput').style.display = 'none';
+  setEnabled(true, true, false);
+}
+
+// ═══════════════════════════════════════════════════════
+//  3 — SHIFRLASH
+// ═══════════════════════════════════════════════════════
+function randomK() {
+  if (!curve || curve.n <= 3n) return;
+  document.getElementById('inK').value = randRange(2n, curve.n - 2n).toString();
+}
+
+function encrypt() {
+  if (!curve || !pubKey) return;
+  const { G, a, p, n } = curve;
+
+  const mStr = document.getElementById('inM').value.trim();
+  if (!mStr) { alert("Xabar m kiriting."); return; }
+  const m = BigInt(mStr);
+  if (m < 0n || m >= p) { alert(`0 ≤ m < p = ${p}`); return; }
+
+  let k;
+  const kStr = document.getElementById('inK').value.trim();
+  if (kStr) {
+    try { k = BigInt(kStr); } catch { alert("k xato!"); return; }
+    if (k < 1n || k >= n - 1n) { alert(`1 < k < ${n-1n}`); return; }
+  } else {
+    k = randRange(2n, n - 2n);
+    document.getElementById('inK').value = k.toString();
+  }
+
+  C1 = scalarMul(k, G, a, p);
+  const S = scalarMul(k, pubKey, a, p);
+  if (S.isInf()) { alert("S = O. Boshqa k tanlang."); return; }
+  C2 = mod(m + S.x, p);
+
+  document.getElementById('dispC1').textContent = `C₁ = ${C1.toString()}`;
+  document.getElementById('dispC2').textContent = `C₂ = ${C2}`;
+
+  document.getElementById('encSteps').innerHTML = `
+    <div class="step">Tasodifiy k tanlandi:
+      <span class="math">k = ${k}   ∈  [1, n−1]</span>
+    </div>
+    <div class="step">Birinchi shifrtekst — masking nuqtasi:
+      <span class="math">C₁ = k · G = ${k} · (${G.x}, ${G.y}) = ${C1.toString()}</span>
+    </div>
+    <div class="step">Umumiy maxfiy nuqta S:
+      <span class="math">S = k · Q = ${k} · ${pubKey.toString()} = ${S.toString()}</span>
+    </div>
+    <div class="step">Ikkinchi shifrtekst — xabar yashirildi:
+      <span class="math">C₂ = m + Hx(S) mod p = ${m} + ${S.x} mod ${p} = ${C2}</span>
+    </div>
+    <div class="step">Uzatilgan shifrtekst:
+      <span class="math">(C₁, C₂) = ( ${C1.toString()},  ${C2} )</span>
+    </div>
+  `;
+  document.getElementById('encOutput').style.display = 'block';
+  document.getElementById('decOutput').style.display = 'none';
+  setEnabled(true, true, true);
+}
+
+// ═══════════════════════════════════════════════════════
+//  4 — DESHIFRLASH
+// ═══════════════════════════════════════════════════════
+function decrypt() {
+  if (!curve || !privKey || !C1 || C2 === null) return;
+  const { a, p } = curve;
+
+  const S = scalarMul(privKey, C1, a, p);
+  if (S.isInf()) { alert("Deshifrlash xatosi: S = O."); return; }
+  const m = mod(C2 - S.x, p);
+
+  document.getElementById('dispDecM').textContent = `m = ${m}`;
+
+  document.getElementById('decSteps').innerHTML = `
+    <div class="step">Alice xususiy kalit d bilan S tikladi:
+      <span class="math">S = d · C₁ = ${privKey} · ${C1.toString()} = ${S.toString()}</span>
+    </div>
+    <div class="step">Kommutativlik — matematik asos:
+      <span class="math">d·(k·G) = k·(d·G) = k·Q = S   ✓</span>
+    </div>
+    <div class="step">Asl xabar tiklandi:
+      <span class="math">m = C₂ − Hx(S) mod p = ${C2} − ${S.x} mod ${p} = ${m}</span>
+    </div>
+    <div class="step" style="border-left-color:var(--accent2);background:rgba(0,255,136,.05);">
+      ✓ Muvaffaqiyatli deshifrlash!
+      <span class="math" style="color:var(--accent2);">m = ${m}</span>
+    </div>
+  `;
+  document.getElementById('decOutput').style.display = 'block';
+}
+
+// init
+setEnabled(false, false, false);
+</script>
+</body>
+</html>
